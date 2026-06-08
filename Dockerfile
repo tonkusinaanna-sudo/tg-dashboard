@@ -12,6 +12,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-EXPOSE 8000
+EXPOSE 10000
 
 CMD ["python", "/app/backend/main.py"]
