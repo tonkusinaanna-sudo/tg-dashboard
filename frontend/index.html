@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TG Chat Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0f11;
+  --bg2: #16181c;
+  --bg3: #1e2026;
+  --border: #2a2d35;
+  --border2: #363b45;
+  --text: #e8eaf0;
+  --text2: #8b909e;
+  --text3: #555a68;
+  --accent: #4f8ef7;
+  --accent2: #2563c4;
+  --green: #2ecc71;
+  --green-bg: #0d2e1a;
+  --green-text: #4ade80;
+  --amber: #f59e0b;
+  --amber-bg: #2a1f07;
+  --amber-text: #fbbf24;
+  --red: #ef4444;
+  --red-bg: #2a0d0d;
+  --red-text: #f87171;
+  --blue-bg: #0d1f3a;
+  --blue-text: #60a5fa;
+  --gray-bg: #1e2026;
+  --gray-text: #8b909e;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+
+/* Layout */
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: var(--bg2); border-right: 1px solid var(--border); padding: 0; flex-shrink: 0; display: flex; flex-direction: column; }
+.main { flex: 1; overflow: auto; }
+
+/* Sidebar */
+.logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); }
+.logo-title { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text); letter-spacing: 0.05em; }
+.logo-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.nav { padding: 12px 0; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; cursor: pointer; color: var(--text2); font-size: 13px; transition: all 0.15s; border-left: 2px solid transparent; }
+.nav-item:hover { color: var(--text); background: var(--bg3); }
+.nav-item.active { color: var(--accent); background: rgba(79,142,247,0.08); border-left-color: var(--accent); }
+.nav-icon { font-size: 16px; width: 18px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--red-bg); color: var(--red-text); font-size: 10px; padding: 2px 6px; border-radius: 20px; font-family: 'IBM Plex Mono', monospace; }
+.sidebar-bottom { padding: 16px 20px; border-top: 1px solid var(--border); }
+.clear-btn { width: 100%; padding: 8px; background: transparent; border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text3); font-size: 12px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.clear-btn:hover { border-color: var(--red); color: var(--red-text); }
+
+/* Header */
+.header { padding: 20px 28px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg); position: sticky; top: 0; z-index: 10; }
+.page-title { font-size: 16px; font-weight: 600; }
+.page-sub { font-size: 12px; color: var(--text3); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+
+/* Upload area */
+.upload-wrap { padding: 28px; }
+.upload-zone { border: 1.5px dashed var(--border2); border-radius: var(--radius-lg); padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--bg2); position: relative; }
+.upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(79,142,247,0.05); }
+.upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.upload-icon { font-size: 32px; margin-bottom: 12px; }
+.upload-title { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+.upload-sub { font-size: 12px; color: var(--text3); line-height: 1.6; }
+.upload-btn { margin-top: 16px; display: inline-block; padding: 9px 20px; background: var(--accent); color: #fff; border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: inherit; transition: background 0.15s; }
+.upload-btn:hover { background: var(--accent2); }
+
+/* Progress */
+.progress-wrap { margin: 20px 28px 0; display: none; }
+.progress-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; border-radius: 2px; }
+.progress-text { font-size: 12px; color: var(--text2); margin-top: 8px; font-family: 'IBM Plex Mono', monospace; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 18px; border-radius: var(--radius); font-size: 13px; z-index: 1000; opacity: 0; transform: translateY(8px); transition: all 0.25s; pointer-events: none; max-width: 320px; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.success { background: var(--green-bg); color: var(--green-text); border: 1px solid rgba(46,204,113,0.3); }
+.toast.error { background: var(--red-bg); color: var(--red-text); border: 1px solid rgba(239,68,68,0.3); }
+
+/* Content */
+.content { padding: 24px 28px; }
+.section { display: none; }
+.section.visible { display: block; }
+
+/* Stats grid */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+.stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; font-family: 'IBM Plex Mono', monospace; }
+.stat-value { font-size: 28px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; color: var(--text); }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.stat-card.danger .stat-value { color: var(--red-text); }
+.stat-card.accent .stat-value { color: var(--accent); }
+
+/* Table */
+.table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.table-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.table-title { font-size: 13px; font-weight: 500; }
+.table-count { font-size: 11px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-size: 11px; color: var(--text3); padding: 10px 16px; border-bottom: 1px solid var(--border); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; }
+td { padding: 11px 16px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 13px; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.td-wrap { max-width: 320px; white-space: normal; line-height: 1.5; }
+.td-chat { font-size: 11px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; margin-top: 3px; }
+
+/* Badges */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; }
+.b-green { background: var(--green-bg); color: var(--green-text); }
+.b-amber { background: var(--amber-bg); color: var(--amber-text); }
+.b-red { background: var(--red-bg); color: var(--red-text); }
+.b-blue { background: var(--blue-bg); color: var(--blue-text); }
+.b-gray { background: var(--gray-bg); color: var(--gray-text); border: 1px solid var(--border); }
+
+/* Empty state */
+.empty { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+.empty-text { font-size: 14px; }
+.empty-sub { font-size: 12px; margin-top: 6px; font-family: 'IBM Plex Mono', monospace; }
+
+/* Chats list */
+.chat-list { display: flex; flex-direction: column; gap: 8px; }
+.chat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; }
+.chat-name { font-size: 14px; font-weight: 500; }
+.chat-meta { font-size: 11px; color: var(--text3); margin-top: 3px; font-family: 'IBM Plex Mono', monospace; }
+.chat-stats { display: flex; gap: 8px; align-items: center; }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.filter-select { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 7px 12px; color: var(--text); font-size: 12px; font-family: 'IBM Plex Mono', monospace; cursor: pointer; }
+.filter-select:focus { outline: none; border-color: var(--accent); }
+.filter-label { font-size: 12px; color: var(--text3); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-title">// PROC_DASH</div>
+      <div class="logo-sub">payment processing intel</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="navigate('overview')"><span class="nav-icon">◈</span> Обзор</div>
+      <div class="nav-item" onclick="navigate('upload')"><span class="nav-icon">↑</span> Загрузить чат</div>
+      <div class="nav-item" onclick="navigate('agreements')"><span class="nav-icon">◎</span> Договорённости</div>
+      <div class="nav-item" onclick="navigate('incidents')" id="nav-incidents"><span class="nav-icon">△</span> Проблемы</div>
+      <div class="nav-item" onclick="navigate('partners')"><span class="nav-icon">◇</span> Партнёры</div>
+      <div class="nav-item" onclick="navigate('limits')"><span class="nav-icon">≡</span> Лимиты и ставки</div>
+      <div class="nav-item" onclick="navigate('chats')"><span class="nav-icon">▣</span> Загруженные чаты</div>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="clear-btn" onclick="clearAll()">✕ Очистить все данные</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <!-- OVERVIEW -->
+    <div id="section-overview" class="section visible">
+      <div class="header">
+        <div><div class="page-title">Обзор</div><div class="page-sub" id="overview-date"></div></div>
+      </div>
+      <div class="content">
+        <div class="stats" id="stats-grid"></div>
+        <div class="table-wrap">
+          <div class="table-header">
+            <span class="table-title">Последние события</span>
+            <span class="table-count" id="overview-count"></span>
+          </div>
+          <div id="overview-table-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div id="section-upload" class="section">
+      <div class="header">
+        <div><div class="page-title">Загрузить чат</div><div class="page-sub">экспорт из telegram desktop → json</div></div>
+      </div>
+      <div class="upload-wrap">
+        <div class="upload-zone" id="dropzone">
+          <input type="file" accept=".json" multiple id="file-input" onchange="handleFiles(this.files)">
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">Перетащите JSON файлы сюда</div>
+          <div class="upload-sub">
+            Экспортируйте чат в Telegram Desktop:<br>
+            Чат → ··· (три точки) → Экспорт истории чата → Формат: JSON
+          </div>
+          <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Выбрать файлы</button>
+        </div>
+        <div class="progress-wrap" id="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <div class="progress-text" id="progress-text">Анализирую...</div>
+        </div>
+        <div id="upload-results"></div>
+      </div>
+    </div>
+
+    <!-- AGREEMENTS -->
+    <div id="section-agreements" class="section">
+      <div class="header">
+        <div><div class="page-title">Договорённости</div><div class="page-sub">зафиксированные соглашения из чатов</div></div>
+      </div>
+      <div class="content">
+        <div class="filter-bar">
+          <span class="filter-label">Чат:</span>
+          <select class="filter-select" id="filter-agreements-chat" onchange="renderAgreements()"><option value="">Все</option></select>
+          <select class="filter-select" id="filter-agreements-status" onchange="renderAgreements()">
+            <option value="">Любой статус</option>
+            <option>Принято</option><option>Ожидание</option><option>Требует действий</option><option>Отклонено</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><span class="table-title">Договорённости</span><span class="table-count" id="agreements-count"></span></div>
+          <div id="agreements-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INCIDENTS -->
+    <div id="section-incidents" class="section">
+      <div class="header">
+        <div><div class="page-title">Проблемы и инциденты</div><div class="page-sub">открытые и решённые инциденты</div></div>
+      </div>
+      <div class="content">
+        <div class="filter-bar">
+          <span class="filter-label">Чат:</span>
+          <select class="filter-select" id="filter-incidents-chat" onchange="renderIncidents()"><option value="">Все</option></select>
+          <select class="filter-select" id="filter-incidents-priority" onchange="renderIncidents()">
+            <option value="">Любой приоритет</option>
+            <option>Критично</option><option>Высокий</option><option>Средний</option><option>Низкий</option>
+          </select>
+          <select class="filter-select" id="filter-incidents-status" onchange="renderIncidents()">
+            <option value="">Любой статус</option>
+            <option>Открыто</option><option>В работе</option><option>Решено</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><span class="table-title">Инциденты</span><span class="table-count" id="incidents-count"></span></div>
+          <div id="incidents-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PARTNERS -->
+    <div id="section-partners" class="section">
+      <div class="header">
+        <div><div class="page-title">Партнёры</div><div class="page-sub">контрагенты и партнёры из переписок</div></div>
+      </div>
+      <div class="content">
+        <div class="filter-bar">
+          <span class="filter-label">Тип:</span>
+          <select class="filter-select" id="filter-partners-type" onchange="renderPartners()">
+            <option value="">Все типы</option>
+            <option>Казино</option><option>Трейдер</option><option>Платёжная система</option><option>Банк</option><option>Другое</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><span class="table-title">Партнёры</span><span class="table-count" id="partners-count"></span></div>
+          <div id="partners-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIMITS -->
+    <div id="section-limits" class="section">
+      <div class="header">
+        <div><div class="page-title">Лимиты и ставки</div><div class="page-sub">комиссии, лимиты, резервы</div></div>
+      </div>
+      <div class="content">
+        <div class="filter-bar">
+          <span class="filter-label">Партнёр:</span>
+          <select class="filter-select" id="filter-limits-partner" onchange="renderLimits()"><option value="">Все</option></select>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><span class="table-title">Условия</span><span class="table-count" id="limits-count"></span></div>
+          <div id="limits-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHATS -->
+    <div id="section-chats" class="section">
+      <div class="header">
+        <div><div class="page-title">Загруженные чаты</div><div class="page-sub">история обработанных экспортов</div></div>
+      </div>
+      <div class="content">
+        <div class="chat-list" id="chats-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let dashData = { stats: {}, agreements: [], incidents: [], partners: [], limits: [], chats: [] };
+
+const statusBadge = {
+  'Принято': 'b-green', 'Решено': 'b-green', 'Активный': 'b-green',
+  'Ожидание': 'b-amber', 'В работе': 'b-amber', 'Мониторинг': 'b-amber', 'Переговоры': 'b-amber',
+  'Требует действий': 'b-red', 'Открыто': 'b-red', 'Критично': 'b-red', 'Отклонено': 'b-red',
+  'Высокий': 'b-amber', 'Средний': 'b-gray', 'Низкий': 'b-gray',
+  'Неактивный': 'b-gray', 'Другое': 'b-gray',
+  'Казино': 'b-blue', 'Трейдер': 'b-green', 'Платёжная система': 'b-gray', 'Банк': 'b-blue',
+};
+function badge(text) {
+  if (!text) return '<span class="badge b-gray">—</span>';
+  const cls = statusBadge[text] || 'b-gray';
+  return `<span class="badge ${cls}">${text}</span>`;
+}
+function empty(msg = 'Нет данных', sub = 'Загрузите JSON экспорт из Telegram') {
+  return `<div class="empty"><div class="empty-icon">◌</div><div class="empty-text">${msg}</div><div class="empty-sub">${sub}</div></div>`;
+}
+
+async function loadDashboard() {
+  try {
+    const r = await fetch('/api/dashboard');
+    dashData = await r.json();
+    renderAll();
+    updateIncidentBadge();
+  } catch(e) { showToast('Ошибка загрузки данных', 'error'); }
+}
+
+function renderAll() {
+  renderOverview();
+  renderAgreements();
+  renderIncidents();
+  renderPartners();
+  renderLimits();
+  renderChats();
+  populateFilters();
+}
+
+function renderOverview() {
+  const s = dashData.stats;
+  document.getElementById('overview-date').textContent = new Date().toLocaleDateString('ru', {day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Чатов</div><div class="stat-value">${s.chats||0}</div><div class="stat-sub">обработано</div></div>
+    <div class="stat-card accent"><div class="stat-label">Договорённостей</div><div class="stat-value">${s.agreements||0}</div><div class="stat-sub">зафиксировано</div></div>
+    <div class="stat-card danger"><div class="stat-label">Открытых проблем</div><div class="stat-value">${s.open_incidents||0}</div><div class="stat-sub">${s.critical_incidents||0} критичных</div></div>
+    <div class="stat-card"><div class="stat-label">Партнёров</div><div class="stat-value">${s.partners||0}</div><div class="stat-sub">найдено</div></div>
+  `;
+  const all = [
+    ...dashData.incidents.filter(i=>i.status!=='Решено').map(i=>({...i,_type:'incident'})),
+    ...dashData.agreements.filter(a=>a.status==='Требует действий'||a.deadline).map(a=>({...a,_type:'agreement'})),
+  ].slice(0,20);
+  if (!all.length) { document.getElementById('overview-table-body').innerHTML = empty('Загрузите первый чат','Нажмите «Загрузить чат» в меню'); document.getElementById('overview-count').textContent=''; return; }
+  document.getElementById('overview-count').textContent = all.length + ' событий';
+  document.getElementById('overview-table-body').innerHTML = `
+    <table><thead><tr><th>Источник</th><th>Описание</th><th>Тип</th><th>Статус</th></tr></thead><tbody>
+    ${all.map(item=>`<tr>
+      <td><span style="font-weight:500">${item.partner||item.name||'—'}</span><div class="td-chat">${item.chat_name}</div></td>
+      <td class="td-wrap">${item.description}</td>
+      <td>${item._type==='incident'?badge(item.priority):badge('Договорённость')}</td>
+      <td>${badge(item.status)}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function renderAgreements() {
+  const chatF = document.getElementById('filter-agreements-chat')?.value || '';
+  const statusF = document.getElementById('filter-agreements-status')?.value || '';
+  let data = dashData.agreements;
+  if (chatF) data = data.filter(r=>r.chat_name===chatF);
+  if (statusF) data = data.filter(r=>r.status===statusF);
+  document.getElementById('agreements-count').textContent = data.length + ' записей';
+  if (!data.length) { document.getElementById('agreements-body').innerHTML = empty(); return; }
+  document.getElementById('agreements-body').innerHTML = `
+    <table><thead><tr><th>Дата</th><th>Партнёр</th><th>Источник</th><th>Договорённость</th><th>Дедлайн</th><th>Статус</th></tr></thead><tbody>
+    ${data.map(r=>`<tr>
+      <td style="white-space:nowrap;color:var(--text3)">${r.date||'—'}</td>
+      <td style="white-space:nowrap;font-weight:500">${r.partner||'—'}</td>
+      <td><span class="badge b-gray" style="font-size:10px">${r.chat_name}</span></td>
+      <td class="td-wrap">${r.description}</td>
+      <td style="white-space:nowrap">${r.deadline?`<span class="badge b-amber">${r.deadline}</span>`:'—'}</td>
+      <td>${badge(r.status)}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function renderIncidents() {
+  const chatF = document.getElementById('filter-incidents-chat')?.value || '';
+  const prioF = document.getElementById('filter-incidents-priority')?.value || '';
+  const statF = document.getElementById('filter-incidents-status')?.value || '';
+  let data = dashData.incidents;
+  if (chatF) data = data.filter(r=>r.chat_name===chatF);
+  if (prioF) data = data.filter(r=>r.priority===prioF);
+  if (statF) data = data.filter(r=>r.status===statF);
+  document.getElementById('incidents-count').textContent = data.length + ' записей';
+  if (!data.length) { document.getElementById('incidents-body').innerHTML = empty(); return; }
+  document.getElementById('incidents-body').innerHTML = `
+    <table><thead><tr><th>Дата</th><th>Источник</th><th>Описание</th><th>Приоритет</th><th>Статус</th></tr></thead><tbody>
+    ${data.map(r=>`<tr>
+      <td style="white-space:nowrap;color:var(--text3)">${r.date||'—'}</td>
+      <td><span class="badge b-gray" style="font-size:10px">${r.chat_name}</span></td>
+      <td class="td-wrap">${r.description}</td>
+      <td>${badge(r.priority)}</td>
+      <td>${badge(r.status)}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function renderPartners() {
+  const typeF = document.getElementById('filter-partners-type')?.value || '';
+  let data = dashData.partners;
+  if (typeF) data = data.filter(r=>r.partner_type===typeF);
+  // deduplicate by name
+  const seen = new Set();
+  data = data.filter(r=>{ if(seen.has(r.name)) return false; seen.add(r.name); return true; });
+  document.getElementById('partners-count').textContent = data.length + ' партнёров';
+  if (!data.length) { document.getElementById('partners-body').innerHTML = empty(); return; }
+  document.getElementById('partners-body').innerHTML = `
+    <table><thead><tr><th>Партнёр</th><th>Тип</th><th>Источник</th><th>Последний контакт</th><th>Статус</th></tr></thead><tbody>
+    ${data.map(r=>`<tr>
+      <td style="font-weight:500;white-space:nowrap">${r.name||'—'}</td>
+      <td>${badge(r.partner_type)}</td>
+      <td><span class="badge b-gray" style="font-size:10px">${r.chat_name}</span></td>
+      <td class="td-wrap" style="color:var(--text2)">${r.last_contact||'—'}</td>
+      <td>${badge(r.status)}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function renderLimits() {
+  const partnerF = document.getElementById('filter-limits-partner')?.value || '';
+  let data = dashData.limits;
+  if (partnerF) data = data.filter(r=>r.partner===partnerF);
+  document.getElementById('limits-count').textContent = data.length + ' записей';
+  if (!data.length) { document.getElementById('limits-body').innerHTML = empty(); return; }
+  document.getElementById('limits-body').innerHTML = `
+    <table><thead><tr><th>Партнёр</th><th>Источник</th><th>Метод</th><th>Комиссия</th><th>Лимит/день</th><th>Резерв</th></tr></thead><tbody>
+    ${data.map(r=>`<tr>
+      <td style="font-weight:500;white-space:nowrap">${r.partner||'—'}</td>
+      <td><span class="badge b-gray" style="font-size:10px">${r.chat_name}</span></td>
+      <td style="white-space:nowrap">${r.method||'—'}</td>
+      <td>${r.commission?`<span class="badge b-green">${r.commission}</span>`:'—'}</td>
+      <td>${r.daily_limit?`<span class="badge b-blue">${r.daily_limit}</span>`:'—'}</td>
+      <td style="color:var(--text2)">${r.reserve||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function renderChats() {
+  const data = dashData.chats;
+  if (!data.length) { document.getElementById('chats-body').innerHTML = empty('Нет загруженных чатов'); return; }
+  document.getElementById('chats-body').innerHTML = data.map(c=>`
+    <div class="chat-card">
+      <div>
+        <div class="chat-name">${c.chat_name}</div>
+        <div class="chat-meta">${new Date(c.uploaded_at).toLocaleString('ru')} · ${c.message_count} сообщений</div>
+      </div>
+      <div class="chat-stats">
+        <span class="badge b-green">✓ обработан</span>
+      </div>
+    </div>`).join('');
+}
+
+function populateFilters() {
+  const chats = [...new Set(dashData.chats.map(c=>c.chat_name))];
+  ['filter-agreements-chat','filter-incidents-chat'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const val = el.value;
+    el.innerHTML = '<option value="">Все чаты</option>' + chats.map(c=>`<option>${c}</option>`).join('');
+    el.value = val;
+  });
+  const partners = [...new Set(dashData.limits.map(l=>l.partner).filter(Boolean))];
+  const lp = document.getElementById('filter-limits-partner');
+  if(lp) { const v=lp.value; lp.innerHTML='<option value="">Все партнёры</option>'+partners.map(p=>`<option>${p}</option>`).join(''); lp.value=v; }
+}
+
+function updateIncidentBadge() {
+  const open = dashData.stats.critical_incidents || 0;
+  const nav = document.getElementById('nav-incidents');
+  const existing = nav.querySelector('.nav-badge');
+  if(existing) existing.remove();
+  if(open>0) nav.insertAdjacentHTML('beforeend',`<span class="nav-badge">${open}</span>`);
+}
+
+function navigate(page) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('visible'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+page).classList.add('visible');
+  event.currentTarget.classList.add('active');
+}
+
+// Upload
+const dropzone = document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e=>{e.preventDefault();dropzone.classList.add('drag');});
+dropzone.addEventListener('dragleave', ()=>dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e=>{e.preventDefault();dropzone.classList.remove('drag');handleFiles(e.dataTransfer.files);});
+
+async function handleFiles(files) {
+  if(!files.length) return;
+  const pw = document.getElementById('progress-wrap');
+  const pf = document.getElementById('progress-fill');
+  const pt = document.getElementById('progress-text');
+  const results = document.getElementById('upload-results');
+  pw.style.display='block'; results.innerHTML='';
+  const total = files.length;
+  let done = 0; let html = '';
+  for(const file of files) {
+    pt.textContent = `Анализирую: ${file.name} (${done+1}/${total})...`;
+    pf.style.width = (done/total*100)+'%';
+    const fd = new FormData(); fd.append('file', file);
+    try {
+      const r = await fetch('/api/upload', {method:'POST', body:fd});
+      const data = await r.json();
+      if(data.success) {
+        html += `<div style="margin-top:12px;padding:12px 16px;background:var(--green-bg);border:1px solid rgba(46,204,113,0.2);border-radius:var(--radius);color:var(--green-text);font-size:13px">
+          ✓ <strong>${data.chat_name}</strong> — ${data.message_count} сообщений проанализировано<br>
+          <span style="font-size:11px;font-family:monospace;opacity:0.8">Договорённости: ${data.extracted.agreements} · Инциденты: ${data.extracted.incidents} · Партнёры: ${data.extracted.partners} · Лимиты: ${data.extracted.limits}</span>
+        </div>`;
+      } else {
+        html += `<div style="margin-top:12px;padding:12px 16px;background:var(--red-bg);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius);color:var(--red-text);font-size:13px">✕ ${file.name}: ${data.detail||'Ошибка'}</div>`;
+      }
+    } catch(e) {
+      html += `<div style="margin-top:12px;padding:12px 16px;background:var(--red-bg);border-radius:var(--radius);color:var(--red-text);font-size:13px">✕ ${file.name}: ошибка соединения</div>`;
+    }
+    done++;
+  }
+  pf.style.width='100%'; pt.textContent='Готово!';
+  results.innerHTML = html;
+  setTimeout(()=>pw.style.display='none', 2000);
+  await loadDashboard();
+  showToast(`Обработано файлов: ${total}`, 'success');
+}
+
+async function clearAll() {
+  if(!confirm('Удалить все данные? Это действие необратимо.')) return;
+  await fetch('/api/clear', {method:'DELETE'});
+  await loadDashboard();
+  showToast('Все данные удалены', 'success');
+}
+
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
