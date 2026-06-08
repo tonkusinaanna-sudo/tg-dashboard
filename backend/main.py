@@ -5,9 +5,10 @@ from datetime import datetime
 import anthropic
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pathlib
+import uvicorn
 
 app = FastAPI()
 
@@ -126,7 +127,7 @@ async def upload_chat(file: UploadFile = File(...)):
     content = await file.read()
     try:
         data = json.loads(content)
-    except:
+    except Exception:
         raise HTTPException(status_code=400, detail="Невалидный JSON")
 
     chat_name = data.get("name") or file.filename.replace(".json", "")
@@ -209,3 +210,8 @@ app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 @app.get("/")
 def serve_index():
     return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
